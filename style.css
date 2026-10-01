@@ -335,3 +335,103 @@ body {
     animation: none;
   }
 }
+/* button for muting sound */
+.icon-btn .ico-off { display: none; }
+.icon-btn[aria-pressed="true"] .ico-on { display: none; }
+.icon-btn[aria-pressed="true"] .ico-off { display: block; }
+.icon-btn[aria-pressed="true"] { opacity: 0.6; }
+
+.burst {
+  position: absolute;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.confetti {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  animation: confetti-fly var(--d, 1.2s) cubic-bezier(.15,.7,.3,1) forwards;
+}
+
+@keyframes confetti-fly {
+  0%   { transform: translate(-50%, -50%) rotate(0deg); opacity: 1; }
+  65%  { transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) rotate(var(--r)); opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y) + 90px)) rotate(var(--r)); opacity: 0; }
+}
+
+.win-sticker {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 18px 10px;
+  background: var(--accent-gold);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  box-shadow: var(--shadow-pop);
+  font-family: var(--font-display);
+  transform: translateX(-50%) rotate(-4deg);
+  animation: sticker-slap 0.45s cubic-bezier(.2,.9,.3,1.4) 0.15s both;
+}
+
+.win-sticker strong { font-size: 1.35rem; font-weight: 600; line-height: 1.1; }
+.win-sticker span { font-size: 0.78rem; font-weight: 500; }
+.win-sticker.is-giveup { background: var(--accent-pink); }
+
+@keyframes sticker-slap {
+  from { transform: translateX(-50%) rotate(10deg) scale(1.9); opacity: 0; }
+  to   { transform: translateX(-50%) rotate(-4deg) scale(1); opacity: 1; }
+}
+
+/* the last typed letter that pops a card up */
+.card-tag {
+  position: absolute;
+  left: 50%;
+  bottom: -13px;
+  max-width: 82%;
+  padding: 3px 12px;
+  background: var(--accent-gold);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transform: translateX(-50%) rotate(-2deg);
+  pointer-events: none;
+}
+
+/* giving up like a weak man */
+.giveup-btn {
+  margin-left: auto;
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  border: 2px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.giveup-btn:hover:not(:disabled) { background: var(--accent-gold); }
+.giveup-btn:disabled { opacity: 0.35; cursor: default; }
+.giveup-btn:focus-visible { outline: 3px solid var(--accent-gold); outline-offset: 2px; }
+
+.table.is-gave-up .card { filter: grayscale(0.7); opacity: 0.85; transition: filter 0.4s ease, opacity 0.4s ease, transform 0.28s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .confetti { display: none; }
+  .win-sticker { animation: none; }
+}

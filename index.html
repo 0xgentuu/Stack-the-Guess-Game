@@ -28,6 +28,10 @@
           <span class="stat-value" id="statCards">0</span>
           <span class="stat-label">in stack</span>
         </div>
+        <button type="button" class="icon-btn" id="btnMute" aria-label="Sound on" aria-pressed="false" title="Sound">
+          <svg class="ico-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+          <svg class="ico-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+        </button>
         <button type="button" class="icon-btn" id="btnHelp" aria-label="How to play" title="How to play">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         </button>
@@ -38,6 +42,7 @@
     </header>
 
     <main class="table">
+      <div class="burst" id="burst" aria-hidden="true"></div>
       <div class="canvas" id="canvas" aria-label="Card stack of guessed avatars"></div>
 
       <p class="empty-state" id="emptyState">
@@ -53,6 +58,7 @@
           hint
         </span>
         <span class="hint-display" id="hintDisplay">&mdash;</span>
+        <button type="button" class="giveup-btn" id="btnGiveUp">give up</button>
       </div>
 
       <form id="guessForm" class="guess-form" autocomplete="off">
