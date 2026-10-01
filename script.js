@@ -31,6 +31,9 @@ const btnNewWord = document.getElementById("btnNewWord");
 const btnHelp = document.getElementById("btnHelp");
 const btnCloseHelp = document.getElementById("btnCloseHelp");
 const helpBackdrop = document.getElementById("helpBackdrop");
+const burstEl = document.getElementById("burst");
+const btnMute = document.getElementById("btnMute");
+const btnGiveUp = document.getElementById("btnGiveUp");
 
 class CardStack {
   constructor(canvas) {
@@ -40,12 +43,19 @@ class CardStack {
     this._bindSwipe();
   }
 
-  push(svgMarkup) {
+  push(svgMarkup, label) {
     const id = this._nextId++;
     const el = document.createElement("div");
     el.className = "card";
     el.dataset.id = String(id);
     el.innerHTML = svgMarkup;
+
+    if (label) {
+      const tag = document.createElement("span");
+      tag.className = "card-tag";
+      tag.textContent = label;
+      el.appendChild(tag);
+    }
 
     el.style.setProperty("--rot", `${(Math.random() * 18 - 9).toFixed(2)}deg`);
     el.style.setProperty("--dx", `${(Math.random() * 22 - 11).toFixed(1)}px`);
@@ -128,6 +138,148 @@ class CardStack {
   }
 }
 
+/* ---------- win celebration: sound + paper burst ---------- */
+const audio = { ctx: null, muted: false };
+try { audio.muted = localStorage.getItem("stack-muted") === "1"; } catch (e) {}
+
+function syncMuteButton() {
+  btnMute.setAttribute("aria-pressed", String(audio.muted));
+  btnMute.setAttribute("aria-label", audio.muted ? "Sound off" : "Sound on");
+}
+
+function getAudioCtx() {
+  if (!audio.ctx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    audio.ctx = new AC();
+  }
+  if (audio.ctx.state === "suspended") audio.ctx.resume();
+  return audio.ctx;
+}
+
+// Applause: lots of short claps (each a quick flutter of 3 noise snaps) that
+// build up, hold, then thin out, with a touch of room reverb so it isn't dry.
+function makeClapSample(ctx) {
+  const rate = ctx.sampleRate;
+  const len = Math.floor(rate * 0.16);
+  const buf = ctx.createBuffer(1, len, rate);
+  const d = buf.getChannelData(0);
+  const snaps = [0, 0.007 + Math.random() * 0.006, 0.016 + Math.random() * 0.008];
+  for (let i = 0; i < len; i++) {
+    const t = i / rate;
+    let env = 0;
+    snaps.forEach((s, k) => {
+      if (t >= s) env += Math.exp(-(t - s) / (k === 2 ? 0.02 : 0.008));
+    });
+    if (t > 0.02) env += 0.2 * Math.exp(-(t - 0.02) / 0.04);
+    d[i] = (Math.random() * 2 - 1) * Math.min(env, 1.4);
+  }
+  return buf;
+}
+
+function makeReverbImpulse(ctx) {
+  const len = Math.floor(ctx.sampleRate * 0.7);
+  const ir = ctx.createBuffer(2, len, ctx.sampleRate);
+  for (let c = 0; c < 2; c++) {
+    const d = ir.getChannelData(c);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+  }
+  return ir;
+}
+
+function playWinSound() {
+  if (audio.muted) return;
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+
+  const start = ctx.currentTime + 0.02;
+  const samples = [0, 1, 2, 3].map(() => makeClapSample(ctx));
+
+  const out = ctx.createDynamicsCompressor();
+  const master = ctx.createGain();
+  master.gain.value = 0.9;
+  out.connect(master).connect(ctx.destination);
+
+  const verb = ctx.createConvolver();
+  verb.buffer = makeReverbImpulse(ctx);
+  const wet = ctx.createGain();
+  wet.gain.value = 0.3;
+  verb.connect(wet).connect(out);
+
+  const total = 2.6;
+  let t = 0;
+  while (t < total) {
+    // loudness: quick build-up, hold, then a long fade as people stop
+    const fadeOut = Math.max(0, (t - 1.2) / (total - 1.2));
+    const env = Math.min(1, t / 0.35) * (1 - Math.pow(fadeOut, 1.5));
+
+    const src = ctx.createBufferSource();
+    src.buffer = samples[Math.floor(Math.random() * samples.length)];
+    src.playbackRate.value = 0.8 + Math.random() * 0.5;
+
+    const hp = ctx.createBiquadFilter();
+    hp.type = "highpass";
+    hp.frequency.value = 600;
+    const bp = ctx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.value = 1300 + Math.random() * 1400;
+    bp.Q.value = 0.6;
+
+    const gain = ctx.createGain();
+    gain.gain.value = 0.38 * env * (0.4 + Math.random() * 0.6);
+
+    let node = src.connect(hp).connect(bp).connect(gain);
+    if (ctx.createStereoPanner) {
+      const pan = ctx.createStereoPanner();
+      pan.pan.value = Math.random() * 1.4 - 0.7;
+      node = node.connect(pan);
+    }
+    node.connect(out);
+    node.connect(verb);
+    src.start(start + t);
+
+    t += 0.012 + Math.random() * 0.03 + (t / total) * 0.05;
+  }
+}
+
+const CONFETTI_COLORS = ["#EF4F87", "#FFC857", "#3FCF8E", "#FBF3E6"];
+
+function celebrate() {
+  playWinSound();
+
+  for (let i = 0; i < 30; i++) {
+    const piece = document.createElement("span");
+    piece.className = "confetti";
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 110 + Math.random() * 130;
+    piece.style.setProperty("--x", `${(Math.cos(angle) * dist).toFixed(0)}px`);
+    piece.style.setProperty("--y", `${(Math.sin(angle) * dist - 40).toFixed(0)}px`);
+    piece.style.setProperty("--r", `${(Math.random() * 720 - 360).toFixed(0)}deg`);
+    piece.style.setProperty("--d", `${(0.9 + Math.random() * 0.7).toFixed(2)}s`);
+    piece.style.background = CONFETTI_COLORS[i % CONFETTI_COLORS.length];
+    piece.style.width = `${8 + Math.random() * 6}px`;
+    piece.style.height = `${10 + Math.random() * 8}px`;
+    burstEl.appendChild(piece);
+    piece.addEventListener("animationend", () => piece.remove());
+  }
+
+  const sticker = document.createElement("div");
+  sticker.className = "win-sticker";
+  const word = document.createElement("strong");
+  word.textContent = state.target + "!";
+  const sub = document.createElement("span");
+  sub.textContent = state.wrongGuesses === 0 ? "first try" : `${state.wrongGuesses} wrong`;
+  sticker.append(word, sub);
+  burstEl.appendChild(sticker);
+}
+
+btnMute.addEventListener("click", () => {
+  audio.muted = !audio.muted;
+  try { localStorage.setItem("stack-muted", audio.muted ? "1" : "0"); } catch (e) {}
+  syncMuteButton();
+});
+syncMuteButton();
+
 const stack = new CardStack(canvasEl);
 
 
@@ -185,7 +337,9 @@ function newRound() {
   state.hintLength = 0;
   state.wrongGuesses = 0;
   stack.clear();
-  tableEl.classList.remove("is-won");
+  burstEl.innerHTML = "";
+  tableEl.classList.remove("is-won", "is-gave-up");
+  btnGiveUp.disabled = false;
   updateHud();
   renderHint();
   setFeedback("", null);
@@ -225,7 +379,7 @@ async function handleWrongGuess(guess) {
   const style = pickRandom(DICEBEAR_STYLES);
   try {
     const svgMarkup = await fetchAvatarSVG(guess, style);
-    stack.push(svgMarkup);
+    stack.push(svgMarkup, guess);
     updateHud();
     setFeedback("Not quite — a new card joins the pile.", "wrong");
   } catch (err) {
@@ -235,10 +389,35 @@ async function handleWrongGuess(guess) {
 }
 
 function handleWin() {
+  state.hintLength = state.target.length; // reveal the full word
+  renderHint();
   tableEl.classList.add("is-won");
   setFeedback(`Solved it! "${state.target}" — took ${state.wrongGuesses} wrong guess(es).`, "win");
   guessInput.disabled = true;
+  btnGiveUp.disabled = true;
+  celebrate();
 }
+
+function handleGiveUp() {
+  if (guessInput.disabled) return; // round already over
+  state.hintLength = state.target.length;
+  renderHint();
+  tableEl.classList.add("is-gave-up");
+  setFeedback(`The word was "${state.target}". Hit the refresh button for a new one.`, "wrong");
+  guessInput.disabled = true;
+  btnGiveUp.disabled = true;
+
+  const sticker = document.createElement("div");
+  sticker.className = "win-sticker is-giveup";
+  const sub = document.createElement("span");
+  sub.textContent = "the word was";
+  const word = document.createElement("strong");
+  word.textContent = state.target;
+  sticker.append(sub, word);
+  burstEl.appendChild(sticker);
+}
+
+btnGiveUp.addEventListener("click", handleGiveUp);
 
 guessForm.addEventListener("submit", (e) => {
   e.preventDefault();
