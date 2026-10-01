@@ -1,0 +1,27 @@
+{
+  "name": "stack-the-guess-game",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/0xgentuu/Stack-the-Guess-Game.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/0xgentuu/Stack-the-Guess-Game/issues"
+  },
+  "homepage": "https://github.com/0xgentuu/Stack-the-Guess-Game#readme",
+  "devDependencies": {
+    "vite": "^8.3.1"
+  },
+  "private": "true"
+}
